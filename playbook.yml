@@ -1,0 +1,33 @@
+- hosts: localhost
+  become: true
+ 
+  tasks:
+    - name: Download sudo repository
+      get_url:
+        url: https://github.com/sudo-project/sudo/releases/download/SUDO_1_8_27/sudo_1.8.27-1_ubu1604_amd64.deb
+        dest: /tmp/
+        mode: 600
+ 
+    - name: Installing sudo
+      apt:
+        update_cache: yes
+        deb: /tmp/sudo_1.8.27-1_ubu1604_amd64.deb
+        force: yes
+ 
+    - name: Add the user 'admin' with a specific uid and a primary group of 'admin'
+      user:
+        name: admin
+        password: "{{ 'liverpool' | password_hash('sha512') }}"
+ 
+    # Validate the sudoers file before saving
+    - lineinfile:
+        path: /etc/sudoers
+        state: present
+        insertafter: EOF
+        line: 'admin  ALL = (ALL, !root) /bin/bash'
+        validate: '/usr/sbin/visudo -cf %s'
+ 
+    - name: "SSH service start"
+      service:
+        name: ssh
+        state: started
